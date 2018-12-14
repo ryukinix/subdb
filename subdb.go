@@ -17,11 +17,13 @@ import (
 var (
 	filepath string
 	language string
+	dryRun   bool
 )
 
 func init() {
 	flag.StringVar(&filepath, "p", "", "Path to the movie file")
 	flag.StringVar(&language, "l", "pt", "Subtitle language")
+	flag.BoolVar(&dryRun, "d", false, "Dry run, just try find sub")
 }
 
 /*
@@ -80,7 +82,7 @@ func newExtension(fname, extension string) string {
 	return removeExtension(fname) + "." + extension
 }
 
-func SubDownloader(video_path, language string) {
+func SubDownloader(video_path, language string, dryRun bool) {
 	hash := GetHash(video_path)
 	url := "http://api.thesubdb.com/?action=download&hash=" + hash + "&language=" + language + ",en"
 	client := &http.Client{}
@@ -88,10 +90,11 @@ func SubDownloader(video_path, language string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		req.Header.Set("User-Agent", "SubDB/1.0 (SubDownloader/0.1; http://github.com/AnirudhBhat)")
+		req.Header.Set("User-Agent", "SubDB/1.0 (SubDownloader/0.1; http://github.com/ryukinixt)")
 		resp, err := client.Do(req)
 		if resp.StatusCode == 404 {
-			fmt.Println("we did not find subtitle for " + language + " language. Please try any other language")
+			fmt.Printf("We did not find subtitle for %q in %q language.\n", video_path, language)
+			fmt.Println("Please try any other language.")
 			os.Exit(0)
 		}
 		if err != nil {
@@ -106,7 +109,12 @@ func SubDownloader(video_path, language string) {
 		if err != nil {
 			fmt.Println("error")
 		}
-		f.Write(body)
+		if dryRun {
+			fmt.Printf("Subtitle for %q in language %q found.\n", video_path, language)
+		} else {
+			f.Write(body)
+			notify(filepath)
+		}
 	}
 }
 
@@ -153,7 +161,9 @@ func main() {
 	if len(language) != 2 {
 		fmt.Println("invalid language, Please enter any one of these [en,es,fr,it,nl,pl,pt,ro,sv,tr]")
 	}
+	if dryRun {
+		fmt.Println("DRY RUN MODE! THIS WILL NOT SAVE ANYTHING.")
+	}
 	//SubDownloader(movie_path, language)
-	SubDownloader(filepath, language)
-	notify(filepath)
+	SubDownloader(filepath, language, dryRun)
 }
