@@ -90,8 +90,12 @@ func SubDownloader(video_path, language string, dryRun bool) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		req.Header.Set("User-Agent", "SubDB/1.0 (SubDownloader/0.1; http://github.com/ryukinixt)")
+		req.Header.Set("User-Agent", "SubDB/1.0 (SubDownloader/0.1; http://github.com/ryukinix)")
 		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Println("error: " + err.Error())
+			os.Exit(1)
+		}
 		if resp.StatusCode == 404 {
 			fmt.Printf("We did not find subtitle for %q in %q language.\n", video_path, language)
 			fmt.Println("Please try any other language.")
@@ -101,10 +105,6 @@ func SubDownloader(video_path, language string, dryRun bool) {
 			fmt.Println(err)
 		}
 		defer resp.Body.Close()
-		f, err := os.Create(path.Join(path.Dir(video_path), newExtension(path.Base(video_path), "srt")))
-		if err != nil {
-			fmt.Println(err)
-		}
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println("error")
@@ -112,6 +112,11 @@ func SubDownloader(video_path, language string, dryRun bool) {
 		if dryRun {
 			fmt.Printf("Subtitle for %q in language %q found.\n", video_path, language)
 		} else {
+			f, err := os.Create(path.Join(path.Dir(video_path), newExtension(path.Base(video_path), "srt")))
+			if err != nil {
+				fmt.Println(err)
+			}
+			defer f.Close()
 			f.Write(body)
 			notify(filepath)
 		}
